@@ -7,4 +7,6 @@ add_executable(PingBallX src/main.cpp src/Game.h src/Game.cpp 3rdparty/olcPixelG
 
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/olcPixelGameEngine)
 
-target_link_libraries(PingBallX pthread png GL X11)
+if(UNIX)
+    target_link_libraries(PingBallX pthread png GL X11)
+endif()
