@@ -1,0 +1,88 @@
+name: Build Debug
+
+on: push
+
+jobs:
+  buildLinux:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install libglu1-mesa-dev 	libgl-dev
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release ..
+          make -j 2
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: PingBallX_Linux
+          path: ${{ github.workspace }}/build/PingBallX
+
+  buildWindows:
+    runs-on: windows-2019
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.0.2
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          msbuild PingBallX.vcxproj /p:configuration=release
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: PingBallX_Windows
+          path: ${{ github.workspace }}\build\Release\PingBallX.exe
+
+  release:
+    runs-on: ubuntu-20.04
+    needs: [buildLinux, buildWindows]
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+    steps:
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: PingBallX_Linux
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: PingBallX_Windows
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+      - name: Upload Linux executable
+        id: upload-release-asset_linux
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          asset_path: ./PingBallX
+          asset_name: PingBallX_Linux
+      - name: Upload Windows executable
+        id: upload-release-asset_windows
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          asset_path: ./PingBallX.exe
+          asset_name: PingBallX_Windows.exe
