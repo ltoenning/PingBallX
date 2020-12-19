@@ -6,7 +6,7 @@ It is intended for testing purposes of the [olcPixelGameEngine](https://github.c
 
 # Requirements
 
-No external requirements needed. The only requirement is the olcPixelGameEngine, which is already packed with the repository.
+On Linux GL and GLU are required.
 
 # Build
 
